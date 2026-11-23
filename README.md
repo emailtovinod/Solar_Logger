@@ -31,6 +31,16 @@ Or without Docker, against any PostgreSQL:
 
 To try the pipeline with no inverter, set `source: {type: simulator}`.
 
+## Checking the logger first
+
+`tools/probe.py` needs only Python 3 and reports which local interfaces the
+logger exposes (open ports, discovery reply, a test register read):
+
+```sh
+python3 tools/probe.py                # connected to the logger's own hotspot
+python3 tools/probe.py 192.168.1.50   # logger on the home network
+```
+
 ## Sources
 
 | `source.type` | Connection | Needs |
