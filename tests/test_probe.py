@@ -89,3 +89,7 @@ def test_full_scan_and_stream(logger_port, tmp_path, monkeypatch):
     text = "\n".join(probe.lines)
     assert "range 5000-5049: 0 registers read, 50 failed" in text
     assert "ok 3/3, failed 0" in text
+
+
+def test_port_scan_finds_fake_logger(logger_port):
+    assert logger_port in probe.scan_all_ports("127.0.0.1", timeout=0.5)

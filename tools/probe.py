@@ -6,6 +6,7 @@ Standard library only; run it on a computer on the same network as the logger:
     python3 probe.py                 # logger's own hotspot (10.10.100.254)
     python3 probe.py 192.168.1.50    # logger on the home network
     python3 probe.py 192.168.1.50 --serial 1234567890
+    python3 probe.py 192.168.1.50 --scan   # look for any open TCP port
     python3 probe.py 192.168.1.50 --full   # also dump all registers and time 20 reads
 
 It only reads. The report is printed and saved to probe_report.txt.
@@ -242,11 +243,39 @@ def stream_test(read, rounds: int = 20) -> None:
         out(f"  all {rounds} reads failed")
 
 
+def scan_all_ports(host: str, timeout: float = 1.0) -> list[int]:
+    """Connect scan of every TCP port, to find anything the logger does expose."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    out("\n== Scan of all TCP ports (about a minute) ==")
+
+    def is_open(port: int) -> bool:
+        try:
+            socket.create_connection((host, port), timeout=timeout).close()
+            return True
+        except OSError:
+            return False
+
+    with ThreadPoolExecutor(max_workers=200) as pool:
+        found = [p for p, ok in zip(range(1, 65536), pool.map(is_open, range(1, 65536))) if ok]
+    out(f"  open ports: {found if found else 'none'}")
+    for port in found:
+        try:
+            with socket.create_connection((host, port), timeout=2) as s:
+                s.settimeout(2)
+                banner = s.recv(200)
+            out(f"    {port}: sends {banner!r}")
+        except OSError:
+            out(f"    {port}: accepts connections, sends nothing first")
+    return found
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("host", nargs="?", default="10.10.100.254", help="logger IP (default: its hotspot address)")
     ap.add_argument("--serial", type=int, help="numeric logger serial for Solarman V5")
     ap.add_argument("--timeout", type=float, default=4)
+    ap.add_argument("--scan", action="store_true", help="scan all 65535 TCP ports")
     ap.add_argument("--full", action="store_true", help="also dump all registers and run a stream test")
     args = ap.parse_args()
 
@@ -257,8 +286,11 @@ def main() -> int:
     if ports.get(80):
         check_http(args.host, args.timeout)
     working = None
-    for port in (8899, 502, 30003):
-        if ports.get(port) and working is None:
+    candidates = [p for p in (8899, 502, 30003) if ports.get(p)]
+    if args.scan:
+        candidates += [p for p in scan_all_ports(args.host) if p not in TCP_PORTS]
+    for port in candidates:
+        if working is None:
             working = check_modbus(args.host, port, serial, args.timeout)
     if working and args.full:
         full_scan(working)
@@ -267,8 +299,9 @@ def main() -> int:
     out("\n== Result ==")
     if working:
         out("  Local register access works. The collector can read this logger directly.")
-    elif not any(ports.values()):
-        out("  Nothing reachable. Check the IP address and that this computer is on the logger's network.")
+    elif not candidates and not any(ports.values()):
+        out("  No usable port found. If connections were refused (not timed out), the device is")
+        out("  there but has local access closed; if they timed out, check the IP address.")
     else:
         out("  Logger is reachable but did not answer register reads. Local Modbus is probably")
         out("  disabled in this firmware; the RS485 adapter or the cloud API is the way in.")
