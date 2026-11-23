@@ -30,6 +30,8 @@ def fake_logger(server):
                     break
                 modbus = req[26:-2]
                 _, _, start, count = struct.unpack(">BBHH", modbus[:6])
+                if start + count - 1 not in REGS:
+                    break  # unsupported range: drop the connection
                 body = bytes([1, 3, 2 * count]) + b"".join(struct.pack(">H", REGS[a]) for a in range(start, start + count))
                 body += probe.crc16(body)
                 payload = b"\x02\x01" + bytes(12) + body
@@ -72,3 +74,18 @@ def test_collector_driver_reads_fake_logger(logger_port):
     src.close()
     assert poll.ok, poll.error
     assert poll.values["battery_soc"] == REGS[588]
+
+
+def test_full_scan_and_stream(logger_port, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(probe.time, "sleep", lambda s: None)
+    monkeypatch.setattr(probe, "SCAN_RANGES", ((0, 120), (5000, 5050)))
+    read = probe.check_modbus("127.0.0.1", logger_port, SERIAL, 2)
+    assert read is not None
+    probe.full_scan(read)
+    probe.stream_test(read, rounds=3)
+    rows = (tmp_path / "probe_registers.csv").read_text().splitlines()
+    assert len(rows) == 121 and rows[6] == "5,0x000f,15,15"
+    text = "\n".join(probe.lines)
+    assert "range 5000-5049: 0 registers read, 50 failed" in text
+    assert "ok 3/3, failed 0" in text

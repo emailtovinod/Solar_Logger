@@ -6,6 +6,7 @@ Standard library only; run it on a computer on the same network as the logger:
     python3 probe.py                 # logger's own hotspot (10.10.100.254)
     python3 probe.py 192.168.1.50    # logger on the home network
     python3 probe.py 192.168.1.50 --serial 1234567890
+    python3 probe.py 192.168.1.50 --full   # also dump all registers and time 20 reads
 
 It only reads. The report is printed and saved to probe_report.txt.
 """
@@ -18,6 +19,7 @@ import re
 import socket
 import struct
 import sys
+import time
 import urllib.error
 import urllib.request
 
@@ -159,7 +161,8 @@ def check_http(host: str, timeout: float) -> None:
             out(f"  GET {path}: failed ({exc})")
 
 
-def check_modbus(host: str, port: int, serial: int | None, timeout: float) -> bool:
+def check_modbus(host: str, port: int, serial: int | None, timeout: float):
+    """Return a working read(start, count) function for this port, or None."""
     out(f"\n== Register read on port {port} ==")
     attempts = []
     if serial is not None:
@@ -184,8 +187,59 @@ def check_modbus(host: str, port: int, serial: int | None, timeout: float) -> bo
                 out(f"    register {addr} ({label}): raw {read(addr, 1)[0]}")
             except Exception as exc:
                 out(f"    register {addr} ({label}): failed ({exc})")
-        return True
-    return False
+        return read
+    return None
+
+
+SCAN_RANGES = ((0, 350), (500, 760), (10000, 10260))
+
+
+def full_scan(read) -> None:
+    """Dump every readable register so the complete data schema can be worked out."""
+    out("\n== Full register dump ==")
+    rows = []
+    for lo, hi in SCAN_RANGES:
+        ok = bad = 0
+        for start in range(lo, hi, 50):
+            count = min(50, hi - start)
+            try:
+                words = read(start, count)
+                rows += [(start + i, w) for i, w in enumerate(words)]
+                ok += count
+            except Exception as exc:
+                bad += count
+                out(f"  {start}-{start + count - 1}: failed ({type(exc).__name__}: {exc})")
+            time.sleep(0.3)
+        out(f"  range {lo}-{hi - 1}: {ok} registers read, {bad} failed")
+    with open("probe_registers.csv", "w", encoding="utf-8") as f:
+        f.write("address,hex,unsigned,signed\n")
+        for addr, w in rows:
+            f.write(f"{addr},0x{w:04x},{w},{w - 65536 if w >= 32768 else w}\n")
+    out(f"  {len(rows)} registers saved to probe_registers.csv")
+
+
+def stream_test(read, rounds: int = 20) -> None:
+    """Repeated reads: how fast and how reliable is the link, and does data change?"""
+    out(f"\n== Stream test ({rounds} reads, 1 s apart) ==")
+    times, fails, changed, last = [], 0, 0, None
+    for _ in range(rounds):
+        t0 = time.monotonic()
+        try:
+            words = read(0, 8) + read(150, 40) + read(586, 40)
+            times.append((time.monotonic() - t0) * 1000)
+            changed += last is not None and words != last
+            last = words
+        except Exception as exc:
+            fails += 1
+            out(f"  read failed: {type(exc).__name__}: {exc}")
+        time.sleep(1)
+    if times:
+        times.sort()
+        out(f"  ok {len(times)}/{rounds}, failed {fails}; latency ms min {times[0]:.0f}, "
+            f"median {times[len(times) // 2]:.0f}, max {times[-1]:.0f}")
+        out(f"  values changed between consecutive reads: {changed}/{max(len(times) - 1, 1)}")
+    else:
+        out(f"  all {rounds} reads failed")
 
 
 def main() -> int:
@@ -193,6 +247,7 @@ def main() -> int:
     ap.add_argument("host", nargs="?", default="10.10.100.254", help="logger IP (default: its hotspot address)")
     ap.add_argument("--serial", type=int, help="numeric logger serial for Solarman V5")
     ap.add_argument("--timeout", type=float, default=4)
+    ap.add_argument("--full", action="store_true", help="also dump all registers and run a stream test")
     args = ap.parse_args()
 
     out(f"Probing logger at {args.host}")
@@ -201,10 +256,13 @@ def main() -> int:
     serial = args.serial or found
     if ports.get(80):
         check_http(args.host, args.timeout)
-    working = False
+    working = None
     for port in (8899, 502, 30003):
-        if ports.get(port):
-            working = check_modbus(args.host, port, serial, args.timeout) or working
+        if ports.get(port) and working is None:
+            working = check_modbus(args.host, port, serial, args.timeout)
+    if working and args.full:
+        full_scan(working)
+        stream_test(working)
 
     out("\n== Result ==")
     if working:
