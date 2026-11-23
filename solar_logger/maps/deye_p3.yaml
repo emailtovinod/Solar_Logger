@@ -1,0 +1,86 @@
+# Register map for Deye three-phase hybrid inverters (SUN-*-SG0*LP3 / SG0*HP3).
+# Addresses follow the community definitions in davidrapan/ha-solarman (MIT).
+# NOT yet verified against a real inverter: compare a snapshot with the Deye app
+# before trusting the numbers. Some scales differ between LV/HV variants.
+# value = (raw - offset) * scale; multi-register values list the low word first.
+model: deye_p3
+signals:
+  - {name: bms_charge_voltage, unit: 'V', type: u16, registers: [210], scale: 0.01, offset: 0}
+  - {name: bms_discharge_voltage, unit: 'V', type: u16, registers: [211], scale: 0.01, offset: 0}
+  - {name: bms_charge_current_limit, unit: 'A', type: u16, registers: [212], scale: 1, offset: 0}
+  - {name: bms_discharge_current_limit, unit: 'A', type: u16, registers: [213], scale: 1, offset: 0}
+  - {name: bms_soc, unit: '%', type: u16, registers: [214], scale: 1, offset: 0}
+  - {name: bms_voltage, unit: 'V', type: u16, registers: [215], scale: 0.01, offset: 0}
+  - {name: bms_current, unit: 'A', type: s16, registers: [216], scale: 1, offset: 0}
+  - {name: bms_alarm, unit: '', type: u16, registers: [220], scale: 1, offset: 0}
+  - {name: bms_fault, unit: '', type: u16, registers: [221], scale: 1, offset: 0}
+  - {name: device_state, unit: '', type: u16, registers: [500], scale: 1, offset: 0}
+  - {name: battery_charge_today, unit: 'kWh', type: u16, registers: [514], scale: 0.1, offset: 0}
+  - {name: battery_discharge_today, unit: 'kWh', type: u16, registers: [515], scale: 0.1, offset: 0}
+  - {name: battery_charge_total, unit: 'kWh', type: u32, registers: [516, 517], scale: 0.1, offset: 0}
+  - {name: battery_discharge_total, unit: 'kWh', type: u32, registers: [518, 519], scale: 0.1, offset: 0}
+  - {name: grid_import_today, unit: 'kWh', type: u16, registers: [520], scale: 0.1, offset: 0}
+  - {name: grid_export_today, unit: 'kWh', type: u16, registers: [521], scale: 0.1, offset: 0}
+  - {name: grid_import_total, unit: 'kWh', type: u32, registers: [522, 523], scale: 0.1, offset: 0}
+  - {name: grid_export_total, unit: 'kWh', type: u32, registers: [524, 525], scale: 0.1, offset: 0}
+  - {name: load_energy_today, unit: 'kWh', type: u16, registers: [526], scale: 0.1, offset: 0}
+  - {name: load_energy_total, unit: 'kWh', type: u32, registers: [527, 528], scale: 0.1, offset: 0}
+  - {name: pv_energy_today, unit: 'kWh', type: u16, registers: [529], scale: 0.1, offset: 0}
+  - {name: pv_energy_total, unit: 'kWh', type: u32, registers: [534, 535], scale: 0.1, offset: 0}
+  - {name: generator_energy_today, unit: 'kWh', type: u16, registers: [536], scale: 0.1, offset: 0}
+  - {name: dc_temperature, unit: '°C', type: s16, registers: [540], scale: 0.1, offset: 1000}
+  - {name: ac_temperature, unit: '°C', type: s16, registers: [541], scale: 0.1, offset: 1000}
+  - {name: device_alarm, unit: '', type: u32, registers: [553, 554], scale: 1, offset: 0}
+  - {name: battery_temperature, unit: '°C', type: u16, registers: [586], scale: 0.1, offset: 1000}
+  - {name: battery_voltage, unit: 'V', type: u16, registers: [587], scale: 0.01, offset: 0}
+  - {name: battery_soc, unit: '%', type: u16, registers: [588], scale: 1, offset: 0}
+  - {name: battery_power, unit: 'W', type: s16, registers: [590], scale: 1, offset: 0}
+  - {name: battery_current, unit: 'A', type: s16, registers: [591], scale: 0.01, offset: 0}
+  - {name: grid_l1_voltage, unit: 'V', type: u16, registers: [598], scale: 0.1, offset: 0}
+  - {name: grid_l2_voltage, unit: 'V', type: u16, registers: [599], scale: 0.1, offset: 0}
+  - {name: grid_l3_voltage, unit: 'V', type: u16, registers: [600], scale: 0.1, offset: 0}
+  - {name: grid_frequency, unit: 'Hz', type: u16, registers: [609], scale: 0.01, offset: 0}
+  - {name: grid_l1_power, unit: 'W', type: s32, registers: [622, 687], scale: 1, offset: 0}
+  - {name: external_ct1_power, unit: 'W', type: s32, registers: [616, 705], scale: 1, offset: 0}
+  - {name: grid_l2_power, unit: 'W', type: s32, registers: [623, 688], scale: 1, offset: 0}
+  - {name: external_ct2_power, unit: 'W', type: s32, registers: [617, 706], scale: 1, offset: 0}
+  - {name: grid_l3_power, unit: 'W', type: s32, registers: [624, 689], scale: 1, offset: 0}
+  - {name: external_ct3_power, unit: 'W', type: s32, registers: [618, 707], scale: 1, offset: 0}
+  - {name: grid_power, unit: 'W', type: s32, registers: [625, 690], scale: 1, offset: 0}
+  - {name: external_ct_power, unit: 'W', type: s32, registers: [619, 708], scale: 1, offset: 0}
+  - {name: output_l1_voltage, unit: 'V', type: u16, registers: [627], scale: 0.1, offset: 0}
+  - {name: output_l1_current, unit: 'A', type: s16, registers: [630], scale: 0.01, offset: 0}
+  - {name: output_l1_power, unit: 'W', type: s32, registers: [633, 691], scale: 1, offset: 0}
+  - {name: ups_l1_power, unit: 'W', type: s32, registers: [640, 696], scale: 1, offset: 0}
+  - {name: load_l1_voltage, unit: 'V', type: u16, registers: [644], scale: 0.1, offset: 0}
+  - {name: load_l1_power, unit: 'W', type: s32, registers: [650, 656], scale: 1, offset: 0}
+  - {name: output_l2_voltage, unit: 'V', type: u16, registers: [628], scale: 0.1, offset: 0}
+  - {name: output_l2_current, unit: 'A', type: s16, registers: [631], scale: 0.01, offset: 0}
+  - {name: output_l2_power, unit: 'W', type: s32, registers: [634, 692], scale: 1, offset: 0}
+  - {name: ups_l2_power, unit: 'W', type: s32, registers: [641, 697], scale: 1, offset: 0}
+  - {name: load_l2_voltage, unit: 'V', type: u16, registers: [645], scale: 0.1, offset: 0}
+  - {name: load_l2_power, unit: 'W', type: s32, registers: [651, 657], scale: 1, offset: 0}
+  - {name: output_l3_voltage, unit: 'V', type: u16, registers: [629], scale: 0.1, offset: 0}
+  - {name: output_l3_current, unit: 'A', type: s16, registers: [632], scale: 0.01, offset: 0}
+  - {name: output_l3_power, unit: 'W', type: s32, registers: [635, 693], scale: 1, offset: 0}
+  - {name: ups_l3_power, unit: 'W', type: s32, registers: [642, 698], scale: 1, offset: 0}
+  - {name: load_l3_voltage, unit: 'V', type: u16, registers: [646], scale: 0.1, offset: 0}
+  - {name: load_l3_power, unit: 'W', type: s32, registers: [652, 658], scale: 1, offset: 0}
+  - {name: inverter_power, unit: 'W', type: s32, registers: [636, 694], scale: 1, offset: 0}
+  - {name: output_frequency, unit: 'Hz', type: u16, registers: [638], scale: 0.01, offset: 0}
+  - {name: ups_power, unit: 'W', type: s32, registers: [643, 699], scale: 1, offset: 0}
+  - {name: load_power, unit: 'W', type: s32, registers: [653, 659], scale: 1, offset: 0}
+  - {name: load_frequency, unit: 'Hz', type: u16, registers: [655], scale: 0.01, offset: 0}
+  - {name: generator_power, unit: 'W', type: s32, registers: [667, 671], scale: 1, offset: 0}
+  - {name: pv1_power, unit: 'W', type: u16, registers: [672], scale: 1, offset: 0}
+  - {name: pv1_voltage, unit: 'V', type: u16, registers: [676], scale: 0.1, offset: 0}
+  - {name: pv1_current, unit: 'A', type: u16, registers: [677], scale: 0.1, offset: 0}
+  - {name: pv2_power, unit: 'W', type: u16, registers: [673], scale: 1, offset: 0}
+  - {name: pv2_voltage, unit: 'V', type: u16, registers: [678], scale: 0.1, offset: 0}
+  - {name: pv2_current, unit: 'A', type: u16, registers: [679], scale: 0.1, offset: 0}
+  - {name: pv3_power, unit: 'W', type: u16, registers: [674], scale: 1, offset: 0}
+  - {name: pv3_voltage, unit: 'V', type: u16, registers: [680], scale: 0.1, offset: 0}
+  - {name: pv3_current, unit: 'A', type: u16, registers: [681], scale: 0.1, offset: 0}
+  - {name: pv4_power, unit: 'W', type: u16, registers: [675], scale: 1, offset: 0}
+  - {name: pv4_voltage, unit: 'V', type: u16, registers: [682], scale: 0.1, offset: 0}
+  - {name: pv4_current, unit: 'A', type: u16, registers: [683], scale: 0.1, offset: 0}

@@ -1,0 +1,28 @@
+# Copy to config.yaml and edit.
+device:
+  name: inverter
+  # deye_hybrid = single-phase hybrid (SG0*LP1), deye_p3 = three-phase hybrid (SG0*LP3/HP3),
+  # or a path to your own map file (see solar_logger/maps/).
+  model: deye_p3
+
+source:
+  # Wi-Fi logger stick on the LAN (needs TCP port 8899 open on the stick).
+  type: solarman_v5
+  host: 192.168.1.50
+  serial: 1234567890        # logger serial number, printed on the stick
+  # port: 8899
+  # slave_id: 1
+
+  # Direct RS485 via a USB adapter:
+  # type: modbus_rtu
+  # device: /dev/ttyUSB0
+  # baudrate: 9600
+  # slave_id: 1
+
+  # Made-up data for trying the pipeline without an inverter:
+  # type: simulator
+
+poll_interval: 15            # seconds
+
+# Can also be set with the SOLAR_DATABASE_URL environment variable.
+database_url: postgresql://solar:solar@localhost:5432/solar

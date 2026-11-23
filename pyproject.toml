@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "solar-logger"
+version = "0.1.0"
+description = "Local data logger for Deye inverters"
+requires-python = ">=3.11"
+dependencies = [
+    "PyYAML>=6",
+    "psycopg[binary]>=3.1",
+    "pysolarmanv5>=3.0",
+    "minimalmodbus>=2.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+solar-logger = "solar_logger.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["solar_logger*"]
+
+[tool.setuptools.package-data]
+"solar_logger.maps" = ["*.yaml"]

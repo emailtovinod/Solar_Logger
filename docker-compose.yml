@@ -1,0 +1,33 @@
+services:
+  db:
+    image: timescale/timescaledb:latest-pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: solar
+      POSTGRES_PASSWORD: ${SOLAR_DB_PASSWORD:-solar}
+      POSTGRES_DB: solar
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U solar -d solar"]
+      interval: 5s
+      retries: 20
+
+  collector:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SOLAR_DATABASE_URL: postgresql://solar:${SOLAR_DB_PASSWORD:-solar}@db:5432/solar
+    volumes:
+      - ./config.yaml:/config/config.yaml:ro
+    # For a USB RS485 adapter, pass the device through:
+    # devices:
+    #   - /dev/ttyUSB0:/dev/ttyUSB0
+
+volumes:
+  dbdata:
